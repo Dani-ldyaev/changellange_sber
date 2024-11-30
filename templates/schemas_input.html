@@ -1,0 +1,57 @@
+{% extends "base.html" %} {% block title %}Ввод схем{% endblock %} {% block
+content %}
+<form id="schemas_input">
+  <!DOCTYPE html>
+  <html lang="ru">
+    <head>
+      <meta charset="UTF-8" />
+      <title>Ввод схем</title>
+      <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+      />
+    </head>
+    <body>
+      <h1>Ввод схем</h1>
+      <form method="post">
+        <label for="application-schema"
+          >Схема анкеты на получение кредита:</label
+        >
+        <textarea
+          id="application-schema"
+          name="application_schema"
+          rows="10"
+          cols="50"
+        >
+{{ application_schema }}</textarea
+        ><br />
+        <label for="model-schema">Схема модели:</label>
+        <textarea id="model-schema" name="model_schema" rows="10" cols="50">
+{{ model_schema }}</textarea
+        ><br />
+        <label for="credit-bureau-schema">Схема кредитного бюро:</label>
+        <textarea
+          id="credit-bureau-schema"
+          name="credit_bureau_schema"
+          rows="10"
+          cols="50"
+        >
+{{ credit_bureau_schema }}</textarea
+        ><br />
+        <label for="education-committee-resource-schema"
+          >Схема комитета по образованию:</label
+        >
+        <textarea
+          id="education-committee-resource-schema"
+          name="education_committee_resource_schema"
+          rows="10"
+          cols="50"
+        >
+{{ education_committee_resource_schema }}</textarea
+        ><br />
+        <input type="submit" value="Отправить схемы" />
+      </form>
+    </body>
+  </html>
+</form>
+{% endblock %}
