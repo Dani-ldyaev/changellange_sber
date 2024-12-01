@@ -1,125 +1,189 @@
-from flask import (
-    Flask,
-    render_template,
-    request,
-    jsonify,
-    session,
-    redirect,
-    flash,
-    url_for,
-    app,
-)
+from flask import Flask, render_template, request, jsonify
 import json
-from pathlib import Path
+import jsonschema
+from datetime import date
 
-
-# from adapters.giga_chat_adapter import GigaChatAdapter
-
-app.secret_key = "SECRET_KEY"
-# app.config["sessions"]["secret_key"] = app.secret_key
-
-# Создаем приложение Flask
 app = Flask(__name__)
 
-# Загрузка JSON-схем
-with open(Path("schemas/application_schema.json"), "r", encoding="utf-8") as f:
-    application_schema = json.load(f)
+# Модель JSON схемы
+JSON_SCHEMA = {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Данные для модели",
+    "type": "object",
+    "required": ["studentData", "parentsData"],
+    "properties": {
+        "studentData": {
+            "description": "Данные по студенту",
+            "type": "object",
+            "required": [
+                "age",
+                "residenceRegion",
+                "averageScore",
+                "profession",
+                "administrativeOffense",
+                "overdueLoanStudent",
+            ],
+            "properties": {
+                "age": {"description": "Возраст студента", "type": "integer"},
+                "residenceRegion": {
+                    "description": "Код региона проживания студента",
+                    "type": "string",
+                },
+                "averageScore": {
+                    "description": "Средний балл студента",
+                    "type": "number",
+                },
+                "profession": {
+                    "description": "Будущая специальность студента (согласно словарю)",
+                    "type": "string",
+                },
+                "administrativeOffense": {
+                    "description": "Количество административных нарушений",
+                    "type": "integer",
+                },
+                "overdueLoanStudent": {
+                    "description": "% кредитов с просрочкой студента",
+                    "type": "number",
+                },
+            },
+        },
+        "parentsData": {
+            "description": "Данные по родителям",
+            "type": "object",
+            "required": ["overdueLoanParents", "parentsBankruptcy"],
+            "properties": {
+                "overdueLoanParents": {
+                    "description": "% кредитов с просрочкой родителей",
+                    "type": "number",
+                },
+                "parentsBankruptcy": {
+                    "description": "Банкротство родителей",
+                    "type": "boolean",
+                },
+            },
+        },
+    },
+}
 
-with open(Path("schemas/model_schema.json"), "r", encoding="utf-8") as f:
-    model_schema = json.load(f)
+# Словарь для оценки региона
+REGION_SCORES = {
+    "Москва": 12.5,
+    "Санкт-Петербург": 12.5,
+    "Новосибирск": 12,
+    "Екатеринбург": 11.5,
+    "Казань": 11,
+    "Нижний Новгород": 10.5,
+    "Челябинск": 10,
+    "Омск": 9.5,
+    "Самара": 9,
+    "Ростов-на-Дону": 8.5,
+    "Уфа": 8,
+    "Красноярск": 7.5,
+    "Пермь": 7,
+    "Воронеж": 6.5,
+    "Волгоград": 6,
+}
 
-with open(Path("schemas/credit_bureau_schema.json"), "r", encoding="utf-8") as f:
-    credit_bureau_schema = json.load(f)
 
-with open(
-    Path("schemas/education_committee_resource_schema.json"), "r", encoding="utf-8"
-) as f:
-    education_committee_resource_schema = json.load(f)
+def calculate_age(birth_date):
+    today = date.today()
+    return (
+        today.year
+        - birth_date.year
+        - ((today.month, today.day) < (birth_date.month, birth_date.day))
+    )
 
 
-# Главная страница
+def validate_json(data):
+    try:
+        jsonschema.validate(instance=data, schema=JSON_SCHEMA)
+        return True
+    except jsonschema.exceptions.ValidationError as err:
+        return False
+
+
+def calculate_credit_score(data):
+    score = 0
+
+    # Возраст
+    if data["studentData"]["age"] < 18:
+        age_score = 0
+    else:
+        age_score = min((data["studentData"]["age"] - 18) * 3 + 4, 12.5)
+
+    # Регион
+    region_score = REGION_SCORES.get(data["studentData"]["residenceRegion"], 0)
+
+    # Средний балл
+    average_score = data["studentData"]["averageScore"]
+    if average_score >= 5:
+        avg_score = 12.5
+    elif average_score >= 4:
+        avg_score = 10
+    elif average_score >= 3:
+        avg_score = 7
+    else:
+        avg_score = 0
+
+    # Специальность
+    profession_score = 12.5
+
+    # Административные нарушения
+    admin_offenses = data["studentData"]["administrativeOffense"]
+    admin_offense_score = max(-admin_offenses * 6.25, 0)
+
+    # Просроченные кредиты студента
+    student_loan_overdue = data["studentData"]["overdueLoanStudent"]
+    student_loan_score = max(12.5 - student_loan_overdue // 10 * 5, 0)
+
+    # Просроченные кредиты родителей
+    parent_loan_overdue = data["parentsData"]["overdueLoanParents"]
+    parent_loan_score = max(12.5 - parent_loan_overdue // 10 * 6, 0)
+
+    # Банкротство родителей
+    parent_bankruptcy = data["parentsData"]["parentsBankruptcy"]
+    bankruptcy_score = 12.5 if not parent_bankruptcy else 0
+
+    total_score = sum(
+        [
+            age_score,
+            region_score,
+            avg_score,
+            profession_score,
+            admin_offense_score,
+            student_loan_score,
+            parent_loan_score,
+            bankruptcy_score,
+        ]
+    )
+
+    return round(total_score, 2)
+
+
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
-# Ввод данных
-@app.route("/model-selection", methods=["GET", "POST"])
-def model_selection():
+@app.route("/data_source", methods=["GET"])
+def data_source():
+    return render_template("data_source.html")
+
+
+@app.route("/credit_calculation", methods=["POST", "GET"])
+def credit_calculation():
     if request.method == "POST":
-        # Получаем данные из формы
-        model_schema = request.form.get("schema")
-        input_data = request.form.get("input_data")
-
-        # Проверяем, что данные пришли корректно
-        if model_schema and input_data:
-            # Сохраняем данные в сессии
-            session["model_schema"] = model_schema
-            session["input_data"] = input_data
-
-            flash("Данные успешно сохранены в сессии.")
-            return redirect(url_for("evaluate_student"))
-    else:
-        flash("Не удалось сохранить данные в сессии. Попробуйте повторить операцию.")
-        return redirect(url_for("model-selection"))
-
-    return render_template("model_selection.html", model_schema=model_schema)
-
-
-# Отправка данных для оценки студента
-# @app.route("/evaluate-student", methods=["POST"])
-# def evaluate_student():
-#     # Получаем данные от клиента
-#     data = request.get_json()
-
-#     # Создаем объект адаптера
-#     adapter = GigaChatAdapter(
-#         data["model_name"], data["schema"], data["transformations"]
-#     )
-
-#     # Оцениваем студента
-#     score = adapter.evaluate_student(data["input_data"])
-
-#     # Возвращаем результат
-#     return jsonify(score)
-
-
-# Страница для ввода и отправки готовых схем
-@app.route("/submit-schemas", methods=["GET", "POST"])
-def submit_schemas():
-    if request.method == "POST":
-        # Получаем данные из форм
-        application_schema = request.form.get("application_schema")
-        model_schema = request.form.get("model_schema")
-        credit_bureau_schema = request.form.get("credit_bureau_schema")
-        education_committee_resource_schema = request.form.get(
-            "education_committee_resource_schema"
-        )
-
-        # Обработка схем и передача их на GigaChat API
-        cleaned_data = process_schemas(
-            application_schema,
-            model_schema,
-            credit_bureau_schema,
-            education_committee_resource_schema,
-        )
-
-        # Возвращаем результат
-        return jsonify(cleaned_data)
-
-    return render_template("submit_schemas.html")
-
-
-# # Функция для обработки схем
-# def process_schemas(
-#     application_schema,
-#     model_schema,
-#     credit_bureau_schema,
-#     education_committee_resource_schema,
-# ):
-#     # Здесь идет обработка схем и передача их на GigaChat API
-#     # Возвращаем очищенные данные
-#     return {"cleaned_data": "Замените это на реальный результат"}
+        data = request.json
+        is_valid = validate_json(data)
+        if is_valid:
+            score = calculate_credit_score(data)
+            color = "green" if score > 80 else "yellow" if score <= 80 else "red"
+            return jsonify({"score": score, "color": color})
+        else:
+            return jsonify({"error": "Invalid JSON format"})
+    elif request.method == "GET":
+        # Отображение формы для ввода данных
+        return render_template("credit_calculation.html")
 
 
 if __name__ == "__main__":

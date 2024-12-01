@@ -1,0 +1,46 @@
+{% extends "base.html" %} {% block title %}Расчёт данных{% endblock %} {% block
+content %}
+<h1>Расчёт кредита</h1>
+<div id="progress-bar-container">
+  <div id="progress-bar" style="background-color: red; width: 0%"></div>
+</div>
+
+<form id="calculation-form" method="post">
+  <label for="json-data">Введите данные:</label><br />
+  <textarea id="json-data" rows="10" cols="50"></textarea><br />
+  <button type="submit">Рассчитать</button>
+</form>
+
+<script>
+  const form = document.getElementById("calculation-form");
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    const jsonData = document.getElementById("json-data").value;
+
+    fetch("/credit_calculation", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(jsonData),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        const progressBar = document.getElementById("progress-bar");
+        let color = "";
+        if (data.score <= 60) {
+          color = "red";
+        } else if (data.score <= 80) {
+          color = "yellow";
+        } else {
+          color = "green";
+        }
+        progressBar.style.backgroundColor = color;
+        progressBar.style.width = `${data.score}%`;
+      })
+      .catch((error) => {
+        console.error("Ошибка:", error);
+      });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "base.html" %} {% block title %}Выбор источников данных{% endblock %}
+{% block content %}
+<form id="data-source">
+  <!DOCTYPE html>
+  <html lang="ru">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+      />
+      <title>Выбор источников данных</title>
+    </head>
+    <body>
+      <h1>Выбор источников данных</h1>
+      <table>
+        <thead>
+          <tr>
+            <th>Поле</th>
+            <th>Источник</th>
+            <th>Значение</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Поля -->
+          <tr>
+            <td>Возраст</td>
+            <td>Из:</td>
+            <td>
+              <input
+                type="text"
+                name="age-source"
+                placeholder="age / date_of_birth / dob"
+              />
+            </td>
+          </tr>
+          <tr>
+            <td>Регион проживания</td>
+            <td>Из:</td>
+            <td>
+              <input
+                type="text"
+                name="region-source"
+                placeholder="residence_region"
+              />
+            </td>
+          </tr>
+          <tr>
+            <td>Средний балл</td>
+            <td>Из:</td>
+            <td>
+              <input
+                type="text"
+                name="avg-score-source"
+                placeholder="average_score"
+              />
+            </td>
+          </tr>
+          <tr>
+            <td>Специальность</td>
+            <td>Из:</td>
+            <td>
+              <input
+                type="text"
+                name="profession-source"
+                placeholder="profession"
+              />
+            </td>
+          </tr>
+          <tr>
+            <td>Административные правонарушения</td>
+            <td>Из:</td>
+            <td>
+              <input
+                type="text"
+                name="offences-source"
+                placeholder="administrative_offense"
+              />
+            </td>
+          </tr>
+          <tr>
+            <td>% просроченных кредитов студента</td>
+            <td>Из:</td>
+            <td>
+              <input
+                type="text"
+                name="student-loans-source"
+                placeholder="overdue_loan_student"
+              />
+            </td>
+          </tr>
+          <tr>
+            <td>% просроченных кредитов родителей</td>
+            <td>Из:</td>
+            <td>
+              <input
+                type="text"
+                name="parent-loans-source"
+                placeholder="overdue_loan_parents"
+              />
+            </td>
+          </tr>
+          <tr>
+            <td>Банкротство родителей</td>
+            <td>Из:</td>
+            <td>
+              <input
+                type="text"
+                name="bankruptcy-source"
+                placeholder="parents_bankruptcy"
+              />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <button onclick="submitForm()">Отправить</button>
+      <script>
+        function submitForm() {
+          const formData = new FormData();
+          document.querySelectorAll('input[type="text"]').forEach((input) => {
+            formData.append(input.name, input.value);
+          });
+          fetch("/credit_calculation", {
+            method: "POST",
+            body: formData,
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              alert(`Ваш результат: ${data.score}`);
+            })
+            .catch((error) => {
+              console.error("Ошибка:", error);
+            });
+        }
+      </script>
+    </body>
+  </html>
+</form>
+{% endblock %}

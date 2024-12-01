@@ -1,66 +1,67 @@
-/* Основные стили */
+/* Основные цвета Сбербанка */
+:root {
+  --sber-green: #00a651;
+  --sber-light-green: #dff1f0;
+  --sber-white: #ffffff;
+  --sber-dark-gray: #424242;
+}
+
 body {
   font-family: Arial, sans-serif;
-  background-color: #f5f5f5;
-  color: #333;
-  margin: 0;
-  padding: 20px;
+  margin: 20px;
+  background-color: var(--sber-light-green);
+  color: var(--sber-dark-gray);
 }
 
-h1,
-h2,
-h3 {
-  color: #0077c2;
+h1 {
+  color: var(--sber-green);
+  margin-bottom: 20px;
 }
 
-a {
-  text-decoration: none;
-  color: #0077c2;
-}
-
-/* Кнопки */
-.button {
-  display: inline-block;
-  padding: 10px 15px;
-  border-radius: 5px;
-  background-color: #0077c2;
-  color: white;
-  text-align: center;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.button:hover {
-  background-color: #00548e;
-}
-
-/* Формы */
-form label {
-  display: block;
-  margin-bottom: 5px;
-}
-
-form input,
-form select,
-form textarea {
+table {
+  border-collapse: collapse;
   width: 100%;
-  padding: 10px;
-  margin-bottom: 10px;
-  border: 1px solid #ccc;
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+th,
+td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--sber-dark-gray);
+}
+
+th {
+  background-color: var(--sber-green);
+  color: var(--sber-white);
+  font-weight: bold;
+}
+
+td {
+  background-color: var(--sber-white);
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 8px;
+  border: none;
+  outline: none;
   border-radius: 5px;
 }
 
-form button[type="submit"] {
-  width: auto;
+button {
+  display: block;
+  margin: 20px auto;
   padding: 10px 20px;
-  background-color: #79b855;
-  color: white;
+  background-color: var(--sber-green);
+  color: var(--sber-white);
   border: none;
-  border-radius: 5px;
+  border-radius: 10px;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
-form button[type="submit"]:hover {
-  background-color: #538a41;
+button:hover {
+  background-color: darken(var(--sber-green), 10%);
 }
