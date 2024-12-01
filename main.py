@@ -7,14 +7,18 @@ app = Flask(__name__)
 
 # Модель JSON схемы
 JSON_SCHEMA = {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "Данные для модели",
     "type": "object",
-    "required": ["studentData", "parentsData"],
     "properties": {
         "studentData": {
-            "description": "Данные по студенту",
             "type": "object",
+            "properties": {
+                "age": {"type": "number"},
+                "residenceRegion": {"type": "string"},
+                "averageScore": {"type": "number"},
+                "profession": {"type": "string"},
+                "administrativeOffense": {"type": "number"},
+                "overdueLoanStudent": {"type": "number"},
+            },
             "required": [
                 "age",
                 "residenceRegion",
@@ -23,47 +27,22 @@ JSON_SCHEMA = {
                 "administrativeOffense",
                 "overdueLoanStudent",
             ],
-            "properties": {
-                "age": {"description": "Возраст студента", "type": "integer"},
-                "residenceRegion": {
-                    "description": "Код региона проживания студента",
-                    "type": "string",
-                },
-                "averageScore": {
-                    "description": "Средний балл студента",
-                    "type": "number",
-                },
-                "profession": {
-                    "description": "Будущая специальность студента (согласно словарю)",
-                    "type": "string",
-                },
-                "administrativeOffense": {
-                    "description": "Количество административных нарушений",
-                    "type": "integer",
-                },
-                "overdueLoanStudent": {
-                    "description": "% кредитов с просрочкой студента",
-                    "type": "number",
-                },
-            },
+            "additionalProperties": False,
         },
         "parentsData": {
-            "description": "Данные по родителям",
             "type": "object",
-            "required": ["overdueLoanParents", "parentsBankruptcy"],
             "properties": {
-                "overdueLoanParents": {
-                    "description": "% кредитов с просрочкой родителей",
-                    "type": "number",
-                },
-                "parentsBankruptcy": {
-                    "description": "Банкротство родителей",
-                    "type": "boolean",
-                },
+                "overdueLoanParents": {"type": "number"},
+                "parentsBankruptcy": {"type": "boolean"},
             },
+            "required": ["overdueLoanParents", "parentsBankruptcy"],
+            "additionalProperties": False,
         },
     },
+    "required": ["studentData", "parentsData"],
+    "additionalProperties": False,
 }
+
 
 # Словарь для оценки региона
 REGION_SCORES = {
@@ -95,10 +74,12 @@ def calculate_age(birth_date):
 
 
 def validate_json(data):
+    print(type(data))
     try:
         jsonschema.validate(instance=data, schema=JSON_SCHEMA)
         return True
     except jsonschema.exceptions.ValidationError as err:
+        print(f"Валидатор обнаружил ошибку: {err.message}")
         return False
 
 
@@ -173,14 +154,23 @@ def data_source():
 @app.route("/credit_calculation", methods=["POST", "GET"])
 def credit_calculation():
     if request.method == "POST":
-        data = request.json
-        is_valid = validate_json(data)
-        if is_valid:
-            score = calculate_credit_score(data)
-            color = "green" if score > 80 else "yellow" if score <= 80 else "red"
-            return jsonify({"score": score, "color": color})
-        else:
-            return jsonify({"error": "Invalid JSON format"})
+        try:
+            raw_data = request.data.decode("utf-8").strip()
+            print(raw_data)
+            data = json.loads(raw_data)
+            print(f"Принятые данные: {data}")
+            is_valid = validate_json(data)
+            if is_valid:
+                score = calculate_credit_score(data)
+                color = "green" if score > 80 else "yellow" if score <= 80 else "red"
+                result = {"score": score, "color": color}
+                print(f"Результат расчета: {result}")
+                return jsonify(result)
+            else:
+                return jsonify({"error": "Invalid JSON format"})
+        except Exception as e:
+            print(f"Ошибка обработки данных: {e}")
+            return jsonify({"error": str(e)})
     elif request.method == "GET":
         # Отображение формы для ввода данных
         return render_template("credit_calculation.html")

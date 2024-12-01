@@ -3,6 +3,7 @@ content %}
 <h1>Расчёт кредита</h1>
 <div id="progress-bar-container">
   <div id="progress-bar" style="background-color: red; width: 0%"></div>
+  <p id="score-text"></p>
 </div>
 
 <form id="calculation-form" method="post">
@@ -13,7 +14,7 @@ content %}
 
 <script>
   const form = document.getElementById("calculation-form");
-  form.addEventListener("submit", function (event) {
+  form?.addEventListener("submit", function (event) {
     event.preventDefault();
     const jsonData = document.getElementById("json-data").value;
 
@@ -26,7 +27,9 @@ content %}
     })
       .then((response) => response.json())
       .then((data) => {
+        console.log("Ответ от сервера:", data); // Логирование ответа
         const progressBar = document.getElementById("progress-bar");
+        const scoreText = document.getElementById("score-text");
         let color = "";
         if (data.score <= 60) {
           color = "red";
@@ -37,6 +40,7 @@ content %}
         }
         progressBar.style.backgroundColor = color;
         progressBar.style.width = `${data.score}%`;
+        scoreText.textContent = `Балл: ${data.score}`;
       })
       .catch((error) => {
         console.error("Ошибка:", error);
